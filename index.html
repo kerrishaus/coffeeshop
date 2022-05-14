@@ -32,7 +32,7 @@
 	        <div id='stationInfo'>
 	        </div>
 	    </div>
-	
+	    
 	    <script>
 	        function getRandomInt(min, max) 
 	        {
@@ -44,9 +44,41 @@
 	        function createCube()
 	        {
     	        const geometry = new THREE.BoxGeometry();
-    			const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    			const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
     			return new THREE.Mesh(geometry, material);
 	        }
+	    </script>
+	    
+	    <script>
+	        class ProgressBar3D extends THREE.Group
+	        {
+                constructor()
+                {
+                    super();
+                    
+        			const geometry = new THREE.PlaneGeometry(1, .25);
+                    const material = new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.FrontSide });
+                    this.track = new THREE.Mesh(geometry, material);
+                    
+                    const geometry2 = new THREE.PlaneGeometry(1, .25);
+                    const material2 = new THREE.MeshBasicMaterial({color: 0x00ff00, side: THREE.FrontSide });
+                    this.bar = new THREE.Mesh(geometry2, material2);
+                    
+                    this.add(this.track);
+                    this.add(this.bar);
+                    scene.add(this);
+                }
+                
+                setProgress(amount, total)
+                {
+                    this.bar.scale.set(this.percent(amount, total) / 100, 1, 1);
+                }
+                
+                percent(amount, total)
+                {
+                   return (100 * amount) / total;
+                } 
+	        };
 	    </script>
 	    
 	    <script>
@@ -95,16 +127,24 @@
 	            
 	            update(deltaTime)
 	            {
-	                if (this.timeElapsed > 3)
+	                if (this.timeElapsed > 0.8)
 	                {
 	                    this.object.position.copy(this.endPosition);
 	                    
 	                    if (this.state = 1)
+	                    {
 	                        this.state = 2;
+	                        this.object.material.color.setHex(0x0000ff);
+	                    }
+	                    else if (this.state == 2 && this.linePosition == 0)
+	                    {
+	                        this.state = 3;
+	                        this.object.material.color.setHex(0x00ff00);
+	                    }
 	                }
 	                else
 	                {
-                        this.object.position.lerp(this.endPosition, this.timeElapsed / 3);
+                        this.object.position.lerpVectors(this.startPosition, this.endPosition, this.timeElapsed / 3);
                         this.timeElapsed += deltaTime;
 	                }
 	            }
@@ -116,14 +156,22 @@
 	        {
 	            constructor(position, number)
 	            {
-	                console.log(position);
+	                this.number = number;
 	                
-	                this.object = createCube();
-	                this.object.material.color.setHex(0xffffff);
+	                this.object = new THREE.Group();
+	                
+	                const model = createCube();
+	                model.material.color.setHex(0xffffff);
+	                this.object.add(model);
+	                
+	                this.progressBar = new ProgressBar3D();
+	                this.object.add(this.progressBar);
+	                
+	                this.progressBar.position.y = 1;
+	                
 	                this.object.position.x = position.x;
 	                this.object.position.y = position.y;
 	                
-	                this.number = number;
 	                this.customers = new Array();
 	                scene.add(this.object);
 	                
@@ -144,10 +192,10 @@
                         element.destruct();
 	                });
 	            }
-	            
+
 	            update(deltaTime)
 	            {
-	                if (this.customers.length > 0)
+	                if (this.customers.length > 0 && this.customers[0].state == 2)
 	                {
     	                if (this.currentCoffeeTime < this.coffeeTime)
     	                    this.currentCoffeeTime += deltaTime;
@@ -155,15 +203,17 @@
     	                {
     	                    this.customers.shift().destruct();
     	                    this.line -= 1;
-    	                    
+
     	                    for (const customer of this.customers)
     	                    {
     	                        customer.linePosition -= 1;
     	                        customer.calculateTarget();
-    	                    }
-                            
+                            }
+
                             this.currentCoffeeTime = 0;
     	                }
+    	                
+    	                this.progressBar.setProgress(this.currentCoffeeTime, this.coffeeTime);
 	                }
 	                
 	                $("#station" + this.number + "coffeeTime").html(this.currentCoffeeTime + ", " + (this.line >= 5 ? "<span style='color: " + (this.line >= 10 ? "red" : "yellow") + ";'>" + this.line + "</span>" : this.line));
@@ -206,12 +256,15 @@
 	                this.customerRushInterval = 0.5;
 	                this.effectiveCustomerInterval = this.customerInterval;
 	                
-	                this.rushInterval = 10;
+	                this.rushInterval = 30;
 	                this.rush = false;
 	                this.rushTime = 5;
 	                
 	                this.timeSinceLastRust = 0;
 	                this.timeSinceLastCustomer = 0;
+	                
+	                this.addStationButton = createCube();
+	                scene.add(this.addStationButton);
 	                
 	                console.log("Created coffeeshop.");
 	            }
@@ -310,6 +363,7 @@
             scene.add(floor);
             
             const entrance = createCube();
+            entrance.material.color.setHex(0x444444);
             entrance.position.x = -10;
             entrance.position.y = -2;
             scene.add(entrance);            
@@ -318,9 +372,9 @@
 			camera.position.copy(cameraRestingPosition);
 			
 			const shop = new CoffeeShop();
-			shop.addStation().coffeeTime = 2.5;
+			shop.addStation().coffeeTime = 1;
 			shop.addStation().coffeeTime = 2;
-			shop.addStation().coffeeTime = 1.5;
+			shop.addStation().coffeeTime = 3;
 			
 			const clock = new THREE.Clock();
 			
