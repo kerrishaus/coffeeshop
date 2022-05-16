@@ -271,9 +271,18 @@
 	            
 	            newCustomer()
 	            {
-	                var station = getRandomInt(0, this.stations.length);
+	                let smallestLine = 10, station = 0;
 	                
-	                if (this.stations[station].line >= 10)
+	                for (let i = 0; i < this.stations.length; i++)
+	                {
+	                    if (this.stations[i].line < smallestLine)
+	                    {
+	                        smallestLine = this.stations[i].line;
+	                        station = i;
+	                    }
+	                }
+	                        
+	                if (!this.rush && this.stations[station].line >= 10)
 	                {
 	                    console.warn("too many customers for station" + station);
 	                    return;
@@ -284,7 +293,7 @@
 	                this.stations[station].customers.push(customer);
 	                this.stations[station].line += 1;
 	                
-	                console.log("added customer to shop, using station " + customer.station.number);
+	                console.log("added customer to station " + customer.station.number);
 	            }
 	            
 	            addMoney(amount)
