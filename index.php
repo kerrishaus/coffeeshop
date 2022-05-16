@@ -26,11 +26,39 @@
 	    <div id='info'>
 	        <div>money: $<span id='money'>0</span></div>
 	        <div>served: <span id='customers'>0</span></div>
+	        <div>reputation: <span id='reputation'>0</span></div>
 	        <div>rush: <span id='rushStatus'></span></div>
 	        <div id='rushTimer'></div>
 	        <div id='customerTimer'></div>
 	        <div id='stationInfo'>
 	        </div>
+	    </div>
+	    
+	    <style>
+	        #station
+	        {
+	            position: absolute;
+	            top: 0px;
+	            left: 0px;
+	            
+	            background: #222222;
+	            
+	            width: 100vw;
+	            height: 0px;
+	            
+	            transition: height 0.25s;
+	        }
+	        
+	        #station.open
+	        {
+	            height: 60vh;
+	            
+	            transition: height 0.25s;
+	        }
+	    </style>
+	    
+	    <div id='station'>
+	        hello there
 	    </div>
 	    
 	    <script>
@@ -45,7 +73,8 @@
 	        {
     	        const geometry = new THREE.BoxGeometry();
     			const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    			return new THREE.Mesh(geometry, material);
+    			const cube = new THREE.Mesh(geometry, material);
+    			return cube;
 	        }
 	    </script>
 	    
@@ -86,15 +115,19 @@
 	        {
 	            constructor(station)
 	            {
-	                this.object = createCube();
-	                this.object.material.color.setHex(0xff0000);
-	                this.object.position.copy(new THREE.Vector3(-10, -2, 0));
-	                this.object.scale.x = 0.8;
-	                this.object.scale.y = 0.8;
-	                this.object.scale.z = 0.8;
-	                
 	                this.station = station;
 	                this.linePosition = station.line;
+	                
+	                this.object = new THREE.Group();
+	                this.object.position.copy(new THREE.Vector3(-10, -2, 0));
+	                
+	                this.torso = createCube();
+	                this.torso.scale.x = 0.8;
+	                this.torso.scale.y = 0.8;
+	                this.torso.scale.z = 0.8;
+	                this.object.add(this.torso);
+	                
+	                this.setHex(0xff0000);
 	                
 	                scene.add(this.object);
 	                
@@ -102,8 +135,9 @@
 	                
 	                // 0 = moving to station
 	                // 1 = waiting to move to a station;
-	                // 2 = waiting on a station
-	                // 3 = leaving
+	                // 2 = waiting in line at a station
+	                // 3 = waiting for coffee to be finished at a station
+	                // 4 = leaving
 	                this.state = 0;
 	                
 	                console.log("Created customer.");
@@ -118,6 +152,11 @@
 	                console.log("Destructed customer");
 	            }
 	            
+	            setHex(color)
+	            {
+	                this.torso.material.color.setHex(color);
+	            }
+	            
 	            calculateTarget()
 	            {
 	                this.timeElapsed = 0;
@@ -127,19 +166,19 @@
 	            
 	            update(deltaTime)
 	            {
-	                if (this.timeElapsed > 0.8)
+	                if (this.timeElapsed > 0.7)
 	                {
 	                    this.object.position.copy(this.endPosition);
 	                    
-	                    if (this.state = 1)
+	                    if (this.state == 0)
 	                    {
 	                        this.state = 2;
-	                        this.object.material.color.setHex(0x0000ff);
+	                        this.setHex(0x0000ff);
 	                    }
 	                    else if (this.state == 2 && this.linePosition == 0)
 	                    {
 	                        this.state = 3;
-	                        this.object.material.color.setHex(0x00ff00);
+	                        this.setHex(0x00ff00);
 	                    }
 	                }
 	                else
@@ -154,13 +193,17 @@
 	    <script>
 	        class CoffeeStation
 	        {
-	            constructor(position, number)
+	            constructor(shop)
 	            {
-	                this.number = number;
+	                this.shop = shop;
+	                
+	                this.number = shop.stations.length;
 	                
 	                this.object = new THREE.Group();
 	                
 	                const model = createCube();
+	                model.userData.canClick = true;
+	                model.userData.station = true;
 	                model.material.color.setHex(0xffffff);
 	                this.object.add(model);
 	                
@@ -169,10 +212,11 @@
 	                
 	                this.progressBar.position.y = 1;
 	                
-	                this.object.position.x = position.x;
-	                this.object.position.y = position.y;
+	                this.object.position.x = -8 + (1 * shop.stations.length) + shop.stations.length;
+	                this.object.position.y = 3;
 	                
 	                this.customers = new Array();
+	                this.customersServed = 0;
 	                scene.add(this.object);
 	                
 	                this.coffeeTime = 4;
@@ -195,7 +239,7 @@
 
 	            update(deltaTime)
 	            {
-	                if (this.customers.length > 0 && this.customers[0].state == 2)
+	                if (this.customers.length > 0 && this.customers[0].state == 3)
 	                {
     	                if (this.currentCoffeeTime < this.coffeeTime)
     	                    this.currentCoffeeTime += deltaTime;
@@ -211,6 +255,13 @@
                             }
 
                             this.currentCoffeeTime = 0;
+                            
+                            this.customersServed += 1;
+                            this.shop.money += 4;
+                            this.shop.customersServed += 1;
+                            
+                            if (this.line <= 5)
+                                this.shop.reputation += 1;
     	                }
     	                
     	                this.progressBar.setProgress(this.currentCoffeeTime, this.coffeeTime);
@@ -252,8 +303,10 @@
 	                this.customersServed = 0;
 	                this.stations = new Array();
 	                
-	                this.customerInterval = 1;
-	                this.customerRushInterval = 0.5;
+	                this.reputation = 0;
+	                
+	                this.customerInterval = 2.3;
+	                this.customerRushIntervalFactor = 2; // customerInterval is divided by this value
 	                this.effectiveCustomerInterval = this.customerInterval;
 	                
 	                this.rushInterval = 30;
@@ -264,6 +317,10 @@
 	                this.timeSinceLastCustomer = 0;
 	                
 	                this.addStationButton = createCube();
+	                this.addStationButton.position.y = 3;
+	                this.addStationButton.position.x = -8;
+	                this.addStationButton.userData.canClick = true;
+	                this.addStationButton.userData.addStationButton = true;
 	                scene.add(this.addStationButton);
 	                
 	                console.log("Created coffeeshop.");
@@ -281,9 +338,10 @@
 	                        station = i;
 	                    }
 	                }
-	                        
+                    
 	                if (!this.rush && this.stations[station].line >= 10)
 	                {
+	                    this.reputation -= 1;
 	                    console.warn("too many customers for station" + station);
 	                    return;
 	                }
@@ -303,8 +361,24 @@
 	            
 	            addStation()
 	            {
-	                const station = new CoffeeStation(new THREE.Vector2(-8 + (1 * this.stations.length) + this.stations.length, 3), this.stations.length);
+	                if (this.stations.length >= 9)
+	                {
+	                    console.warn("cannot create another station");
+	                    return;
+	                }
+	                
+	                if (this.stations.length == 8)
+	                    scene.remove(this.addStationButton);
+	                
+                    this.customerInterval -= 0.052 * this.stations.length;
+                    this.effectiveCustomerInterval = this.customerInterval;
+	                
+	                //const station = new CoffeeStation(new THREE.Vector2(-8 + (1 * this.stations.length) + this.stations.length, 3), this.stations.length);
+	                const station = new CoffeeStation(this);
 	                this.stations.push(station);
+	                
+	                this.addStationButton.position.x += 2;
+	                
 	                return station;
 	            }
 	            
@@ -333,9 +407,12 @@
                         }
                         else
                         {
-                            $("#rushStatus").html("<span style='color: red'>yes</span>");
-                            this.rush = true;
-                            this.effectiveCustomerInterval = this.customerRushInterval;
+                            if (this.stations.length > 2)
+                            {
+                                $("#rushStatus").html("<span style='color: red'>yes</span>");
+                                this.rush = true;
+                                this.effectiveCustomerInterval = this.customerInterval / this.customerRushIntervalFactor;
+                            }
                         }
                     }
 	                
@@ -347,9 +424,14 @@
                         this.timeSinceLastCustomer = 0;
                     }
                         
-                    $("#customerTimer").html(this.timeSinceLastCustomer);
+                    $("#customerTimer").html(this.effectiveCustomerInterval + ": " + this.timeSinceLastCustomer);
                     $("#rushTimer").html(this.timeSinceLastRush);
-	                
+                    
+                    $("#money").html(this.money);
+                    $("#customers").html(this.customersServed);
+                    
+                    $("#reputation").html(this.reputation);
+                    
 	                this.stations.forEach(function(element, index, array)
 	                {
                         element.update(deltaTime);
@@ -360,15 +442,28 @@
 	
 		<script>
 			const scene = new THREE.Scene();
-			const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+			
+			let raycaster = new THREE.Raycaster();
+
+			let INTERSECTED;
+			
+			let focusedStation = null;
+			
+			let cameraPosition = new THREE.Vector3(0, 0, 10);
+			let cameraAngle = new THREE.Quaternion();
+			cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
+
+			const pointer = new THREE.Vector2();
+			const radius = 100;
 
 			const renderer = new THREE.WebGLRenderer();
-			renderer.setSize( window.innerWidth, window.innerHeight );
-			document.body.appendChild( renderer.domElement );
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.appendChild(renderer.domElement);
 
-			const geometry2 = new THREE.PlaneGeometry( 20, 10 );
-            const material2 = new THREE.MeshBasicMaterial( {color: 0x222222, side: THREE.FrontSide } );
-            const floor = new THREE.Mesh( geometry2, material2 );
+			const geometry2 = new THREE.PlaneGeometry(20, 10);
+            const material2 = new THREE.MeshBasicMaterial({color: 0x222222, side: THREE.FrontSide });
+            const floor = new THREE.Mesh(geometry2, material2);
             scene.add(floor);
             
             const entrance = createCube();
@@ -378,14 +473,98 @@
             scene.add(entrance);            
 
             const cameraRestingPosition = new THREE.Vector3(0, 0, 10);
+            const cameraRestingAngle = new THREE.Quaternion();
 			camera.position.copy(cameraRestingPosition);
+			cameraRestingAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
 			
 			const shop = new CoffeeShop();
-			shop.addStation().coffeeTime = 1;
-			shop.addStation().coffeeTime = 2;
-			shop.addStation().coffeeTime = 3;
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
+			shop.addStation();
 			
 			const clock = new THREE.Clock();
+			
+			function onWindowResize()
+			{
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				
+				/*
+				// move camera further up the smaller the window is
+				console.log(10 + Math.abs((window.innerWidth / 60)));
+                camera.position.z = (10 + (window.innerWidth / 60));
+                */
+
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+			
+			function onPointerMove(event)
+			{
+				pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+			}
+			
+			function onMouseUp(event)
+			{
+			    if (INTERSECTED == null)
+			        return;
+			        
+			    if (INTERSECTED.userData.hasOwnProperty("addStationButton"))
+			    {
+			        shop.addStation();
+			    }
+			    else if (INTERSECTED.userData.hasOwnProperty("station"))
+			    {
+			        focusedStation = 0;
+			        
+			        INTERSECTED.getWorldPosition(cameraPosition);
+			        cameraPosition.y -= 4;
+			        cameraPosition.z = 4;
+			        
+        			cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), Math.PI / 2.5);
+			        
+			        $("#station").addClass("open");
+			    }
+			}
+			
+			function onKeyDown(event)
+			{
+			    if (focusedStation != null)
+			    {
+    			    if (event.code == "Escape" || event.code == "ArrowDown")
+    			    {
+    			        $("#station").removeClass("open");
+    			        
+    			        cameraPosition.copy(cameraRestingPosition);
+    			        cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
+    			        
+    			        focusedStation = null;
+    			    }
+    			    else if (event.code == "ArrowLeft")
+    			    {
+    			        if (cameraPosition.x > -7)
+    			            cameraPosition.x -= 2;
+    			    }
+    			    else if (event.code == "ArrowRight")
+    			    {
+    			        if (cameraPosition.x < 8)
+    			            cameraPosition.x += 2;
+    			    }
+			    }
+			}
+			
+			document.addEventListener('keydown', onKeyDown);
+			
+			document.addEventListener('mouseup', onMouseUp);
+			document.addEventListener('mousemove', onPointerMove);
+			
+			window.addEventListener('resize', onWindowResize);
 			
 			function animate() 
 			{
@@ -393,36 +572,40 @@
 				
 			    shop.update(clock.getDelta());
 			    
-			    /*
-				shop.customers.forEach(function(element, index, arary)
-				{
-				    const target = new THREE.Vector3(-8 + (1 * element.station) + (1 * element.station) + 0.1, 2 - shop.getStation(element.station).line, 0);
-				    
-				    element.object.position.lerp(target, 0.05);
-				    
-				    approxeq = function(v1, v2, epsilon)
-				    {
-                        if (epsilon == null)
-                        {
-                            epsilon = 0.01;
-                        }
-                        return Math.abs(v1 - v2) < epsilon;
-                    };
-                    
-                    if (approxeq(element.object.position.x, target.x) && approxeq(element.object.position.y, target.y))
-				    {
-				        shop.getStation(element.station).line -= 1;
-				        shop.customersServed += 1;
-				        shop.money += 4;
-				        element.destruct();
-				        shop.customers.splice(index, 1);
-				    }
-				});
-			    */
-				
-				document.getElementById("money").innerHTML = shop.money;
-				document.getElementById("customers").innerHTML = shop.customersServed;
+			    camera.position.lerp(cameraPosition, 0.3);
+			    camera.quaternion.slerp(cameraAngle, 0.3);
+			    
+			    // intersections
+				raycaster.setFromCamera(pointer, camera);
 
+				const intersects = raycaster.intersectObjects(scene.children, true);
+
+				if (intersects.length > 0)
+				{
+					if (INTERSECTED != intersects[0].object)
+					{
+						if (INTERSECTED)
+						{
+						    INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
+						    INTERSECTED = null;
+						}
+
+                        if (intersects[0].object.userData.hasOwnProperty("canClick"))
+                        {
+    						INTERSECTED = intersects[0].object;
+    						INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+    						INTERSECTED.material.color.setHex(0xff0000);
+                        }
+					}
+				}
+				else
+				{
+					if (INTERSECTED)
+					    INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
+
+					INTERSECTED = null;
+				}
+				
 				renderer.render(scene, camera);
 			};
 
