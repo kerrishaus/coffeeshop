@@ -1,0 +1,48 @@
+html, body
+{
+    margin: 0px;
+    padding: 0px;
+}
+
+#info
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    
+    pointer-events: none;
+    
+    color: white;
+}
+
+#station
+{
+    box-sizing: border-box;
+    
+    position: absolute;
+    top: -2em;
+    left: 0px;
+    
+    background: #222222;
+    color: white;
+    
+    padding: 1em;
+    
+    width: 100vw;
+    height: 0px;
+    
+    overflow-x: hidden;
+    
+    transition: height 0.25s, top 0.25s;
+}
+
+#station.open
+{
+    top: 0px;
+    height: 60vh;
+}
+
+h1#stationId
+{
+    margin: 0px;
+}
