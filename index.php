@@ -8,6 +8,24 @@
 		</style>
         <script src="https://kerrishaus.com/assets/threejs/build/three.js"></script>
         <script src="https://kerrishaus.com/assets/scripts/jquery-3.6.0.min.js"></script>
+        
+        <script src="https://portal.kerrishaus.com/assets/javascript/messages.js"></script>
+        <link rel='stylesheet' href='https://portal.kerrishaus.com/assets/styles/messages.css'></link>
+        
+        <style>
+            #notificationContainer
+            {
+                box-sizing: border-box;
+                
+                padding: 1em;
+                
+                top: 0px;
+                left: 0px;
+                
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
 	</head>
 	<body>
 	    <style>
@@ -37,28 +55,40 @@
 	    <style>
 	        #station
 	        {
+	            box-sizing: border-box;
+	            
 	            position: absolute;
-	            top: 0px;
+	            top: -2em;
 	            left: 0px;
 	            
 	            background: #222222;
+	            color: white;
+	            
+	            padding: 1em;
 	            
 	            width: 100vw;
 	            height: 0px;
 	            
-	            transition: height 0.25s;
+	            overflow-x: hidden;
+	            
+	            transition: height 0.25s, top 0.25s;
 	        }
 	        
 	        #station.open
 	        {
+	            top: 0px;
 	            height: 60vh;
-	            
-	            transition: height 0.25s;
+	        }
+	        
+	        h1#stationId
+	        {
+	            margin: 0px;
 	        }
 	    </style>
 	    
 	    <div id='station'>
-	        hello there
+	        <h1>Station #<span id='stationId'>0</span></h1>
+	        <div>servedCustomers <span id='stationServedCustomers'>0</span></div>
 	    </div>
 	    
 	    <script>
@@ -140,16 +170,12 @@
 	                // 4 = leaving
 	                this.state = 0;
 	                
-	                console.log("Created customer.");
-	                
 	                return this;
 	            }
 	            
 	            destruct()
 	            {
 	                scene.remove(this.object);
-	                
-	                console.log("Destructed customer");
 	            }
 	            
 	            setHex(color)
@@ -196,14 +222,13 @@
 	            constructor(shop)
 	            {
 	                this.shop = shop;
-	                
 	                this.number = shop.stations.length;
 	                
 	                this.object = new THREE.Group();
 	                
 	                const model = createCube();
 	                model.userData.canClick = true;
-	                model.userData.station = true;
+	                model.userData.station = this.number;
 	                model.material.color.setHex(0xffffff);
 	                this.object.add(model);
 	                
@@ -271,26 +296,35 @@
 	                
 	                for (const customer of this.customers)
 	                    customer.update(deltaTime);
-	                
-	                /*
-	                for (const [index, customer] of this.customers.entries())
-	                {
-	                    if (customer.state == 2)
-	                    {
-	                        if (this.currentCoffeeTime < this.coffeeTime)
-	                            this.currentCoffeeTime += deltaTime;
-                            else
-                            {
-                                customer.destruct();
-                                this.customers.splice(index, 1);
-                                console.log(this.customers.length);
-                            }
-	                    }
-	                    else
-                            customer.update(deltaTime);
-	                }
-	                */
 	            }
+	        }
+	        
+	        function focusStation(stationNumber)
+	        {
+	            if (stationNumber > shop.stations.length)
+	                return;
+	            
+		        focusedStation = stationNumber;
+			        
+		        shop.stations[focusedStation].object.getWorldPosition(cameraPosition);
+		        cameraPosition.y -= 4;
+		        cameraPosition.z = 4;
+		        
+    			cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), Math.PI / 2.5);
+		        
+		        $("#stationId").html(focusedStation + 1);
+		        $("#stationServedCustomers").html(shop.stations[focusedStation].customersServed);
+		        $("#station").addClass("open");
+	        }
+	        
+	        function unfocusStation()
+	        {
+		        $("#station").removeClass("open");
+		        
+		        cameraPosition.copy(cameraRestingPosition);
+		        cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
+		        
+		        focusedStation = null;
 	        }
 	    </script>
 	    
@@ -322,8 +356,6 @@
 	                this.addStationButton.userData.canClick = true;
 	                this.addStationButton.userData.addStationButton = true;
 	                scene.add(this.addStationButton);
-	                
-	                console.log("Created coffeeshop.");
 	            }
 	            
 	            newCustomer()
@@ -350,8 +382,6 @@
 
 	                this.stations[station].customers.push(customer);
 	                this.stations[station].line += 1;
-	                
-	                console.log("added customer to station " + customer.station.number);
 	            }
 	            
 	            addMoney(amount)
@@ -482,11 +512,6 @@
 			shop.addStation();
 			shop.addStation();
 			shop.addStation();
-			shop.addStation();
-			shop.addStation();
-			shop.addStation();
-			shop.addStation();
-			shop.addStation();
 			
 			const clock = new THREE.Clock();
 			
@@ -521,15 +546,7 @@
 			    }
 			    else if (INTERSECTED.userData.hasOwnProperty("station"))
 			    {
-			        focusedStation = 0;
-			        
-			        INTERSECTED.getWorldPosition(cameraPosition);
-			        cameraPosition.y -= 4;
-			        cameraPosition.z = 4;
-			        
-        			cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), Math.PI / 2.5);
-			        
-			        $("#station").addClass("open");
+			        focusStation(INTERSECTED.userData.station);
 			    }
 			}
 			
@@ -539,23 +556,24 @@
 			    {
     			    if (event.code == "Escape" || event.code == "ArrowDown")
     			    {
-    			        $("#station").removeClass("open");
-    			        
-    			        cameraPosition.copy(cameraRestingPosition);
-    			        cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
-    			        
-    			        focusedStation = null;
+                        unfocusStation();
     			    }
     			    else if (event.code == "ArrowLeft")
     			    {
     			        if (cameraPosition.x > -7)
-    			            cameraPosition.x -= 2;
+    			            focusStation(focusedStation - 1);
     			    }
     			    else if (event.code == "ArrowRight")
     			    {
     			        if (cameraPosition.x < 8)
-    			            cameraPosition.x += 2;
+    			            focusStation(focusedStation + 1);
     			    }
+			    }
+			    
+			    if (event.keyCode >= 49 && event.keyCode <= 57)
+			    {
+			        const number = 9 - (57 - event.keyCode);
+			        focusStation(number - 1);
 			    }
 			}
 			
@@ -566,7 +584,7 @@
 			
 			window.addEventListener('resize', onWindowResize);
 			
-			function animate() 
+			function animate()
 			{
 				requestAnimationFrame(animate);
 				
