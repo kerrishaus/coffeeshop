@@ -89,6 +89,9 @@
 	    <div id='station'>
 	        <h1>Station #<span id='stationId'>0</span></h1>
 	        <div>servedCustomers <span id='stationServedCustomers'>0</span></div>
+	        <div>coffeeTime <span id='stationCoffeeTime'></span>s</div>
+	        <div><progress id="stationCoffeeProgress" value="0" max="100"></progress></div>
+	        <button id='stationSpeedIncrease'>Increase Speed $250</button>
 	    </div>
 	    
 	    <script>
@@ -131,6 +134,11 @@
                 setProgress(amount, total)
                 {
                     this.bar.scale.set(this.percent(amount, total) / 100, 1, 1);
+                }
+                
+                getProgress()
+                {
+                    return this.bar.scale.x;
                 }
                 
                 percent(amount, total)
@@ -285,8 +293,7 @@
                             this.shop.money += 4;
                             this.shop.customersServed += 1;
                             
-                            if (this.line <= 5)
-                                this.shop.reputation += 1;
+                            this.shop.reputation += this.line <= 5 ? 1 : -1;
     	                }
     	                
     	                this.progressBar.setProgress(this.currentCoffeeTime, this.coffeeTime);
@@ -314,6 +321,8 @@
 		        
 		        $("#stationId").html(focusedStation + 1);
 		        $("#stationServedCustomers").html(shop.stations[focusedStation].customersServed);
+		        $("#stationCoffeeTime").html(shop.stations[focusedStation].coffeeTime);
+		        $("#stationCoffeeProgress").val();
 		        $("#station").addClass("open");
 	        }
 	        
@@ -542,7 +551,11 @@
 			        
 			    if (INTERSECTED.userData.hasOwnProperty("addStationButton"))
 			    {
-			        shop.addStation();
+			        if (shop.money >= 1000 * shop.stations.length)
+			        {
+			            shop.money -= 1000 * shop.stations.length;
+			            shop.addStation();
+			        }
 			    }
 			    else if (INTERSECTED.userData.hasOwnProperty("station"))
 			    {
@@ -576,6 +589,18 @@
 			        focusStation(number - 1);
 			    }
 			}
+			
+			$("#stationSpeedIncrease").click(function(event)
+			{
+			    if (focusedStation !=null)
+			    {
+			        if (shop.money >= 250)
+			        {
+			            shop.money -= 250;
+			            shop.stations[focusedStation].coffeeTime -= 0.1;
+			        }
+			    }
+			});
 			
 			document.addEventListener('keydown', onKeyDown);
 			
@@ -622,6 +647,11 @@
 					    INTERSECTED.material.color.setHex(INTERSECTED.currentHex);
 
 					INTERSECTED = null;
+				}
+				
+				if (focusedStation != null)
+				{
+				    $("#stationCoffeeProgress").val(shop.stations[focusedStation].progressBar.getProgress() * 100);
 				}
 				
 				renderer.render(scene, camera);
