@@ -6,13 +6,14 @@
 		
 		<title>coffeeshop</title>
 		
-		<link rel='stylesheet' href='https://kerrishaus.com/games/coffeeshop/assets/styles/game.css'></link>
+		<link rel='stylesheet' href='https://kerrishaus.com/games/coffeeshop/assets/styles/game.css'>
 
         <script src="https://kerrishaus.com/assets/threejs/build/three.js"></script>
         <script src="https://kerrishaus.com/assets/scripts/jquery-3.6.0.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
         
         <script src="https://portal.kerrishaus.com/assets/javascript/messages.js"></script>
-        <link rel='stylesheet' href='https://portal.kerrishaus.com/assets/styles/messages.css'></link>
+        <link rel='stylesheet' href='https://portal.kerrishaus.com/assets/styles/messages.css'>
         
         <style>
             #notificationContainer
@@ -30,6 +31,12 @@
         </style>
 	</head>
 	<body>
+	    <div id='stationsBar'>
+	       <div id='shopStatus'>
+	           <div id='moneyBox'><i class='fa fa-dollar' aria-hidden='true'></i> <span id='money'>0</span></div>
+	       </div>
+	    </div>
+	    
 	    <div id='info'>
 	        <div>money: $<span id='money'>0</span></div>
 	        <div>served: <span id='customers'>0</span></div>

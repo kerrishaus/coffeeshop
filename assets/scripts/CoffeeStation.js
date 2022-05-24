@@ -31,6 +31,8 @@ class CoffeeStation
         this.line = 0;
         
         $("#stationInfo").append("<div id='station" + this.number + "'>" + this.number + ": <span id='station" + this.number + "coffeeTime'></span></div>");
+        
+        $("#stationsBar").append("<div id='station" + this.number + "' class='stationCard'><div>Served: <span id='station" + this.number + "served'>0</span><hr/><div>Time: <span class='station" + this.number + "coffeeTime'>" + this.coffeeTime + "s</span><button class='stationSpeedIncrease' data-station='" + this.number + "'>Upgrade</button></div><label>" + (this.number + 1) + " <progress id='station" + this.number + "progress' value='0' max='100'></progress></label>");
     }
     
     destruct()
@@ -67,12 +69,15 @@ class CoffeeStation
                 this.shop.customersServed += 1;
                 
                 this.shop.reputation += this.line <= 5 ? 1 : -1;
+                
+                $("#station" + this.number + "served").html(this.customersServed);
             }
             
             this.progressBar.setProgress(this.currentCoffeeTime, this.coffeeTime);
+            $("#station" + this.number + "progress").val(this.progressBar.getProgress() * 100);
+            
+            $("#station" + this.number + "coffeeTime").html(this.currentCoffeeTime + ", " + (this.line >= 5 ? "<span style='color: " + (this.line >= 10 ? "red" : "yellow") + ";'>" + this.line + "</span>" : this.line));
         }
-        
-        $("#station" + this.number + "coffeeTime").html(this.currentCoffeeTime + ", " + (this.line >= 5 ? "<span style='color: " + (this.line >= 10 ? "red" : "yellow") + ";'>" + this.line + "</span>" : this.line));
         
         for (const customer of this.customers)
             customer.update(deltaTime);
@@ -83,6 +88,9 @@ function focusStation(stationNumber)
 {
     if (stationNumber > shop.stations.length)
         return;
+        
+    if (focusedStation != null)
+        unfocusStation();
     
     focusedStation = stationNumber;
         
@@ -91,12 +99,8 @@ function focusStation(stationNumber)
     cameraPosition.z = 4;
     
 	cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), Math.PI / 2.5);
-    
-    $("#stationId").html(focusedStation + 1);
-    $("#stationServedCustomers").html(shop.stations[focusedStation].customersServed);
-    $("#stationCoffeeTime").html(shop.stations[focusedStation].coffeeTime);
-    $("#stationCoffeeProgress").val();
-    $("#station").addClass("open");
+	
+	$("#station" + focusedStation).addClass("selected");
 }
 
 function unfocusStation()
@@ -105,6 +109,8 @@ function unfocusStation()
     
     cameraPosition.copy(cameraRestingPosition);
     cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
+    
+    $("#station" + focusedStation).removeClass("selected");
     
     focusedStation = null;
 }

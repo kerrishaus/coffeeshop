@@ -7,7 +7,8 @@ let INTERSECTED;
 
 let focusedStation = null;
 
-let cameraPosition = new THREE.Vector3(0, 0, 10);
+let cameraRestingOffset = 10;
+let cameraPosition = new THREE.Vector3(0, 0, cameraRestingOffset);
 let cameraAngle = new THREE.Quaternion();
 cameraAngle.setFromAxisAngle(new THREE.Vector3( 1, 0, 0 ), 0);
 
@@ -42,16 +43,15 @@ shop.addStation();
 
 const clock = new THREE.Clock();
 
-function onWindowResize()
+function onWindowResize(event)
 {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	
-	/*
-	// move camera further up the smaller the window is
-	console.log(10 + Math.abs((window.innerWidth / 60)));
-    camera.position.z = (10 + (window.innerWidth / 60));
-    */
+    cameraRestingOffset = 10 + Math.abs(window.innerWidth / 200);
+    
+    console.log(cameraRestingOffset);
+    cameraPosition.z = cameraRestingOffset;
 
 	renderer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -74,6 +74,8 @@ function onMouseUp(event)
             shop.money -= 1000 * shop.stations.length;
             shop.addStation();
         }
+        else
+            console.warn("Insufficient funds.");
     }
     else if (INTERSECTED.userData.hasOwnProperty("station"))
     {
@@ -108,15 +110,17 @@ function onKeyDown(event)
     }
 }
 
-$("#stationSpeedIncrease").click(function(event)
+$(".stationSpeedIncrease").on('click', function(event)
 {
-    if (focusedStation !=null)
+    if ($(this).data("station") >= 0)
     {
         if (shop.money >= 250)
         {
             shop.money -= 250;
-            shop.stations[focusedStation].coffeeTime -= 0.1;
+            shop.stations[$(this).data("station")].coffeeTime -= 0.1;
         }
+        else
+            console.warn("Insufficient funds.");
     }
 });
 

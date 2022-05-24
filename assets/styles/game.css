@@ -1,13 +1,37 @@
+@media (prefers-color-scheme: light)
+{
+    :root
+    {
+        --primary: white;
+        --primaryHover: lightgray;
+        
+        --textPrimary: black;
+    }
+}
+
+@media (prefers-color-scheme: dark)
+{
+    :root
+    {
+        --primary: #222222;
+        --primaryHover: #333333;
+        
+        --textPrimary: white;
+    }
+}
+
 html, body
 {
     margin: 0px;
     padding: 0px;
+    
+    font-family: Tahoma;
 }
 
 #info
 {
     position: absolute;
-    top: 0px;
+    bottom: 0px;
     left: 0px;
     
     pointer-events: none;
@@ -45,4 +69,54 @@ html, body
 h1#stationId
 {
     margin: 0px;
+}
+
+#stationsBar
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    
+    display: flex;
+    gap: 10px;
+    
+    padding-left: 10px;
+}
+
+#shopStatus > div
+{
+    background-color: var(--primary);
+    color: var(--textPrimary);
+    
+    padding: 5px 15px;
+    border-radius: 0px 0px 10px 10px;
+}
+
+#shopStatus > #moneyBox
+{
+    width: 60px;
+}
+
+.stationCard
+{
+    background-color: var(--primary);
+    color: var(--textPrimary);
+    
+    padding: 5px 15px;
+    border-radius: 0px 0px 10px 10px;
+    
+    position: relative;
+    
+    top: -62px;
+    
+    transition: all 0.2s;
+}
+
+.stationCard:hover,
+.stationCard:focus,
+.stationCard.selected
+{
+    background-color: var(--primaryHover);
+    
+    top: 0px;
 }
